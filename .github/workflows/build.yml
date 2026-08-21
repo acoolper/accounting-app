@@ -34,13 +34,21 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      - name: Setup Python (Windows)
+        if: matrix.platform == 'win'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: |
           npm config set registry https://registry.npmmirror.com
           npm ci
+        timeout-minutes: 10
 
       - name: Build Vue frontend
         run: npm run build:vue
+        timeout-minutes: 5
 
       - name: Build Electron app (macOS)
         if: matrix.platform == 'mac'
@@ -49,6 +57,7 @@ jobs:
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
           CSC_IDENTITY_AUTO_DISCOVERY: false
+        timeout-minutes: 20
 
       - name: Build Electron app (Windows)
         if: matrix.platform == 'win'
@@ -57,6 +66,7 @@ jobs:
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
           CSC_IDENTITY_AUTO_DISCOVERY: false
+        timeout-minutes: 20
 
       - name: Build Electron app (Linux)
         if: matrix.platform == 'linux'
@@ -66,6 +76,7 @@ jobs:
           npx electron-builder --linux --x64
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+        timeout-minutes: 20
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
