@@ -53,7 +53,7 @@ jobs:
       - name: Build Electron app (macOS)
         if: matrix.platform == 'mac'
         run: |
-          npx electron-builder --mac --universal
+          npx electron-builder --mac --universal --publish never
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -62,7 +62,7 @@ jobs:
       - name: Build Electron app (Windows)
         if: matrix.platform == 'win'
         run: |
-          npx electron-builder --win --x64
+          npx electron-builder --win --x64 --publish never
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -73,7 +73,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libarchive-tools
-          npx electron-builder --linux --x64
+          npx electron-builder --linux --x64 --publish never
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
         timeout-minutes: 20
