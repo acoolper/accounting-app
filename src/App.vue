@@ -39,17 +39,19 @@
           </div>
         </div>
         <div class="sidebar-actions">
-          <el-button size="small" @click="handleBackup">
-            <el-icon><Upload /></el-icon>备份
+          <div class="action-row">
+            <el-button size="large" class="side-btn" @click="handleBackup">
+              <el-icon><Upload /></el-icon>备份
+            </el-button>
+            <el-button size="large" class="side-btn" @click="handleRestore">
+              <el-icon><Download /></el-icon>恢复
+            </el-button>
+          </div>
+          <el-button size="large" class="side-btn" @click="showChangePwd = true">
+            <el-icon><Key /></el-icon>修改密码
           </el-button>
-          <el-button size="small" @click="handleRestore">
-            <el-icon><Download /></el-icon>恢复
-          </el-button>
-          <el-button size="small" @click="showChangePwd = true">
-            <el-icon><Key /></el-icon>改密
-          </el-button>
-          <el-button size="small" type="danger" @click="handleLogout">
-            <el-icon><SwitchButton /></el-icon>退出
+          <el-button size="large" type="danger" class="side-btn side-btn--danger" @click="handleLogout">
+            <el-icon><SwitchButton /></el-icon>退出登录
           </el-button>
         </div>
       </div>
@@ -235,11 +237,23 @@ async function handleRestore() {
 }
 .sidebar-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 10px;
 }
-.sidebar-actions .el-button {
-  flex: 1 1 calc(50% - 3px);
+.action-row {
+  display: flex;
+  gap: 8px;
+}
+.side-btn,
+.side-btn.el-button--large {
+  width: 100% !important;
+  height: 44px !important;
+  font-size: 15px !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+}
+.side-btn + .side-btn {
+  margin-top: 0;
 }
 .main-content {
   padding: 10px;

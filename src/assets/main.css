@@ -35,3 +35,8 @@ body {
 /* 通用金额色（图表/表格自定义区域使用） */
 .income { color: #059669; font-weight: 600; }
 .expense { color: #DC2626; font-weight: 600; }
+
+/* 取消 Element Plus 按钮之间的默认间距 */
+.el-button + .el-button {
+  margin-left: 0 !important;
+}
