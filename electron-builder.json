@@ -1,0 +1,25 @@
+{
+  "appId": "com.accounting.app",
+  "productName": "记账本",
+  "directories": { "output": "release" },
+  "files": [
+    "dist-vue/**",
+    "dist-electron/**",
+    "src/electron/**",
+    "node_modules/**"
+  ],
+  "asar": true,
+  "asarUnpack": [
+    "node_modules/better-sqlite3/**"
+  ],
+  "mac": {
+    "category": "public.app-category.finance",
+    "target": ["dir"],
+    "icon": "build/icon.icns"
+  },
+  "win": {
+    "target": ["nsis"],
+    "icon": "build/icon.ico"
+  },
+  "linux": { "target": ["AppImage"] }
+}

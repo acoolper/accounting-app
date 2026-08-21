@@ -1,0 +1,37 @@
+{
+  "name": "accounting-app",
+  "version": "1.0.0",
+  "description": "基于 Electron + Vue 3 + SQLite 的桌面记账工具",
+  "main": "src/electron/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite --config vite.config.mjs",
+    "build": "vite build --config vite.config.mjs",
+    "preview": "vite preview --config vite.config.mjs",
+    "dev:electron": "node scripts/electron-dev.mjs",
+    "build:app": "node scripts/build-vue.mjs && node scripts/build-electron.mjs",
+    "build:vue": "vite build --config vite.config.mjs"
+  },
+  "keywords": [],
+  "author": "Apple",
+  "license": "ISC",
+  "private": "true",
+  "type": "module",
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "better-sqlite3": "^13.0.3",
+    "electron-log": "^5.4.4",
+    "element-plus": "^2.14.4",
+    "jsonwebtoken": "^9.0.3",
+    "pinia": "^4.0.3",
+    "vue": "^3.5.41",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "electron": "^36.9.5",
+    "electron-builder": "^24.13.3",
+    "vite": "^8.2.1"
+  }
+}

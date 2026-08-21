@@ -1,0 +1,37 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Element Plus 主色覆盖为靛蓝 #6366F1 */
+  --el-color-primary: #6366F1;
+  --el-color-primary-light-3: #9294F5;
+  --el-color-primary-light-5: #B1B2F8;
+  --el-color-primary-light-7: #D0D1FB;
+  --el-color-primary-light-8: #E0E0FC;
+  --el-color-primary-light-9: #EFEFFE;
+  --el-color-primary-dark-2: #4F52C1;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  background: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--el-border-color-darker); }
+
+/* 通用金额色（图表/表格自定义区域使用） */
+.income { color: #059669; font-weight: 600; }
+.expense { color: #DC2626; font-weight: 600; }

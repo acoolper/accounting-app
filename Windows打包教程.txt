@@ -1,0 +1,205 @@
+═══════════════════════════════════════════════════════════════
+            记账本桌面应用 — Windows 打包完整教程
+═══════════════════════════════════════════════════════════════
+
+本教程介绍如何在 Windows 系统上把"记账本"打包成 .exe 安装包。
+本教程只针对 Windows 10/11 64 位系统。
+
+═══════════════════════════════════════════════════════════════
+一、前置条件：安装必要软件
+═══════════════════════════════════════════════════════════════
+
+1. 安装 Node.js（已安装请跳过）
+   - 访问 https://nodejs.org/
+   - 下载 LTS 版本（推荐 20.x 或 22.x）
+   - 双击安装包，一路 Next
+   - 安装完打开「命令提示符」（cmd）验证：
+     node -v
+     npm -v
+     应分别显示 v20.x.x / v10.x.x 左右
+
+2. 安装 Git（可选，用于克隆项目）
+   - 访问 https://git-scm.com/download/win
+   - 下载 64-bit 版本安装
+
+3. 安装 Python（better-sqlite3 编译时需要）
+   - 访问 https://www.python.org/downloads/windows/
+   - 下载 Python 3.11 或 3.12
+   - 安装时**务必勾选「Add Python to PATH」**
+
+═══════════════════════════════════════════════════════════════
+二、把项目代码复制到 Windows
+═══════════════════════════════════════════════════════════════
+
+方案 A：用 U 盘 / 网盘 / 邮件把整个项目目录拷过去
+  项目路径示例：
+    D:\projects\accounting-app\
+
+方案 B：如果是 Git 仓库，在 cmd 中执行：
+    cd D:\projects
+    git clone <你的仓库地址> accounting-app
+
+注意：项目根目录要有这些文件和文件：
+    package.json
+    vite.config.mjs
+    electron-builder.json
+    scripts\
+    src\
+    build\icon-1024.png  ← Windows 图标源文件
+    （其他文件）
+
+═══════════════════════════════════════════════════════════════
+三、生成 Windows 图标（.ico）
+═══════════════════════════════════════════════════════════════
+
+本项目已经有 macOS 用的 build/icon-1024.png，需要额外生成 .ico。
+
+方法 1：用 Python 脚本（推荐）
+  打开 cmd，进入项目目录：
+    cd D:\projects\accounting-app
+    pip install Pillow
+  然后运行以下 Python 代码（保存为 make-ico.py 后 python make-ico.py）：
+
+    from PIL import Image
+    import os
+    src = Image.open('build/icon-1024.png').convert('RGBA')
+    sizes = [(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)]
+    src.save('build/icon.ico', sizes=sizes, append_images=[src.resize(s) for s in sizes])
+    print('icon.ico OK')
+
+方法 2：用在线工具
+  访问 https://convertico.com/
+  上传 build/icon-1024.png，下载生成的 icon.ico
+  放到 build\icon.ico
+
+═══════════════════════════════════════════════════════════════
+四、修改 electron-builder.json 加 Windows 图标
+═══════════════════════════════════════════════════════════════
+
+用记事本 / VS Code 打开项目根目录的 electron-builder.json，
+找到 "win" 段，改为：
+
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "build/icon.ico"
+    }
+
+NSIS 是常见的 Windows 安装包（带安装向导）
+portable 是免安装绿色版（双击即用）
+
+═══════════════════════════════════════════════════════════════
+五、安装依赖并执行打包
+═══════════════════════════════════════════════════════════════
+
+打开 cmd，依次执行：
+
+    cd D:\projects\accounting-app
+
+    :: 1. 配置国内镜像（加速下载，可选）
+    npm config set registry https://registry.npmmirror.com
+
+    :: 2. 安装依赖（首次约 3-5 分钟）
+    npm install
+
+    :: 3. 重新构建 Vue 前端
+    npm run build:vue
+
+    :: 4. 用 electron-builder 打包
+    npx electron-builder --win --x64
+
+完成后会在项目根目录的 release\ 文件夹生成：
+
+    release\
+      记账本 Setup 1.0.0.exe      ← NSIS 安装包（推荐分发）
+      记账本 1.0.0.exe            ← portable 免安装版
+      builder-effective-config.yaml
+
+═══════════════════════════════════════════════════════════════
+六、常见问题排查
+═══════════════════════════════════════════════════════════════
+
+Q1：better-sqlite3 编译报错「找不到 python」
+A：Python 没装或没加 PATH，重装 Python 并勾选 Add to PATH
+
+Q2：打包报「Cannot find module 'electron'」
+A：先跑 npm install 再打包；或删 node_modules 重新装
+
+Q3：首次打包后双击 exe 提示「Windows 已保护你的电脑」
+A：这是因为没有代码签名证书，是正常提示
+   解决：点击「更多信息」→「仍要运行」
+   长期方案：购买代码签名证书（约 ¥2000+/年）
+
+Q4：NSIS 安装包体积太大（>200MB）
+A：正常范围。better-sqlite3 + Electron 本身就有 150MB+
+   优化：可改用 zip target 体积更小
+
+Q5：用户电脑是 32 位 Windows 能用吗？
+A：当前配置只支持 64 位。如需 32 位：
+   npx electron-builder --win --ia32
+
+Q6：想同时打 32 位 + 64 位？
+   npx electron-builder --win --x64 --ia32
+
+Q7：用户运行 exe 报「丢失 api-ms-win-xxx.dll」？
+A：用户系统太老（Windows 7）。建议用户升级到 Win10/11
+   或在 win.target 加 ["nsis"] 时设置：
+   "win": { "target": "nsis", "signAndEditExecutable": false }
+
+Q8：打包报错「stack Error: read ECONNRESET」
+A：网络问题导致下载 Electron 二进制失败。设置镜像：
+   set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+   然后重试
+
+═══════════════════════════════════════════════════════════════
+七、打包后分发
+═══════════════════════════════════════════════════════════════
+
+1. 验证：在自己的 Windows 电脑双击生成的 .exe，确认能正常打开
+2. 上传：
+   - 网盘（百度/阿里/OneDrive）分享 release\ 下的 .exe
+   - 公司内网共享
+   - GitHub Releases（推荐，自动增量更新）
+3. 用户安装后默认会装到：
+   C:\Users\<用户名>\AppData\Local\Programs\记账本\
+   数据库位置：
+   C:\Users\<用户名>\AppData\Roaming\accounting-app\accounting.db
+
+═══════════════════════════════════════════════════════════════
+八、自动化打包（可选）
+═══════════════════════════════════════════════════════════════
+
+如果想每次改代码后自动打包，可加 npm 脚本到 package.json：
+
+  "scripts": {
+    "build:win": "npm run build:vue && electron-builder --win --x64"
+  }
+
+以后只需：
+  npm run build:win
+
+═══════════════════════════════════════════════════════════════
+九、一键脚本（高级）
+═══════════════════════════════════════════════════════════════
+
+在项目根目录创建 build-win.bat（Windows 批处理），双击即可打包：
+
+    @echo off
+    chcp 65001
+    cd /d %~dp0
+    echo ========================================
+    echo   记账本 Windows 打包脚本
+    echo ========================================
+    set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+    call npm install
+    if errorlevel 1 goto :end
+    call npm run build:vue
+    if errorlevel 1 goto :end
+    call npx electron-builder --win --x64
+    :end
+    echo.
+    echo 打包完成！请查看 release\ 文件夹
+    pause
+
+═══════════════════════════════════════════════════════════════
+                    教程结束 — 祝打包顺利！
+═══════════════════════════════════════════════════════════════

@@ -1,0 +1,120 @@
+name: Build Desktop App
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+            arch: universal
+          - os: windows-latest
+            platform: win
+            arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm config set registry https://registry.npmmirror.com
+          npm ci
+
+      - name: Build Vue frontend
+        run: npm run build:vue
+
+      - name: Build Electron app (macOS)
+        if: matrix.platform == 'mac'
+        run: |
+          npx electron-builder --mac --universal
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Build Electron app (Windows)
+        if: matrix.platform == 'win'
+        run: |
+          npx electron-builder --win --x64
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Build Electron app (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+          npx electron-builder --linux --x64
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.AppImage
+            release/*.zip
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.0
+          name: 记账本 v1.0.0
+          body: |
+            ## 📦 下载地址
+
+            ### macOS (Apple Silicon + Intel)
+            - `记账本-1.0.0-universal.dmg`
+
+            ### Windows (64位)
+            - `记账本 Setup 1.0.0.exe`
+
+            ### Linux
+            - `记账本-1.0.0.AppImage`
+
+            ---
+
+            首次运行提示：
+            - **macOS**: 右键点击 → 打开 → 仍要打开（绕过 Gatekeeper）
+            - **Windows**: 点击"更多信息" → "仍要运行"（绕过 SmartScreen）
+            - **Linux**: `chmod +x 记账本-1.0.0.AppImage && ./记账本-1.0.0.AppImage`
+
+          files: artifacts/**/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
