@@ -6,37 +6,70 @@ import { app } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
-const LOG = '/tmp/记账-min.log'
+let db = null
+
+// 获取数据库文件路径
+export function getDbPath() {
+  const userDataPath = app.getPath('userData')
+  return path.join(userDataPath, 'accounting.db')
+}
+
+// 获取 WAL 文件路径（与 db 同目录）
+function getWalPath() {
+  return getDbPath() + '-wal'
+}
+
+function getShmPath() {
+  return getDbPath() + '-shm'
+}
+
+// 跨平台加载 better-sqlite3
+async function loadBetterSqlite3() {
+  // dev 模式：直接 import
+  if (!app.isPackaged) {
+    const mod = await import('better-sqlite3')
+    return mod.default || mod
+  }
+
+  // packaged 模式：从 app.asar.unpacked 加载
+  // better-sqlite3 的 native addon 在 unpacked 目录
+  const unpackedRoot = path.join(
+    process.resourcesPath,
+    'app.asar.unpacked',
+    'node_modules',
+    'better-sqlite3'
+  )
+
+  // 尝试直接 import 主入口（better-sqlite3 自己会找 native addon）
+  const mainPath = path.join(unpackedRoot, 'lib', 'better_sqlite3.js')
+  if (fs.existsSync(mainPath)) {
+    log('loading from lib/better_sqlite3.js')
+    const mod = await import('file://' + mainPath)
+    return mod.default || mod
+  }
+
+  // 兜底：尝试 platform-specific 入口
+  const platformKey = `${process.platform}-${process.arch}`
+  const platformPath = path.join(unpackedRoot, 'lib', `${platformKey}.js`)
+  log('trying platform entry:', platformPath, 'exists:', fs.existsSync(platformPath))
+  const mod = await import('file://' + platformPath)
+  return mod.default || mod
+}
+
+const LOG = (() => {
+  if (process.platform === 'win32') return 'C:\\Users\\Public\\记账-min.log'
+  return '/tmp/记账-min.log'
+})()
+
 function log(...args) {
   const line = `[${Date.now()}] [db] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`
   try { fs.appendFileSync(LOG, line) } catch (_) {}
 }
 
-let db = null
-
-async function loadBetterSqlite3() {
-  if (app.isPackaged) {
-    const unpackedRoot = path.join(
-      process.resourcesPath,
-      'app.asar.unpacked',
-      'node_modules',
-      'better-sqlite3'
-    )
-    const platformKey = `${process.platform}-${process.arch}`
-    const libPath = path.join(unpackedRoot, 'lib', `${platformKey}.js`)
-    log('packaged, platform entry:', libPath, 'exists:', fs.existsSync(libPath))
-    const mod = await import(libPath)
-    return mod.default || mod
-  } else {
-    const mod = await import('better-sqlite3')
-    return mod.default || mod
-  }
-}
-
 export async function initDb() {
   const userDataPath = app.getPath('userData')
   fs.mkdirSync(userDataPath, { recursive: true })
-  const dbPath = path.join(userDataPath, 'accounting.db')
+  const dbPath = getDbPath()
   log('userDataPath:', userDataPath)
   log('dbPath:', dbPath)
 
@@ -117,6 +150,44 @@ export function closeDb() {
 function _db() {
   if (!db) throw new Error('Database not initialized')
   return db
+}
+
+// ─── 备份与恢复 ──────────────────────────────────────────────────────
+export function backupDatabase(targetPath) {
+  closeDb()
+  const src = getDbPath()
+  const wal = getWalPath()
+  const shm = getShmPath()
+
+  // 复制主数据库文件
+  fs.copyFileSync(src, targetPath)
+  log('backup copied:', src, '->', targetPath)
+
+  // 同时复制 WAL 文件（如果存在）
+  if (fs.existsSync(wal)) {
+    fs.copyFileSync(wal, targetPath + '-wal')
+    log('backup copied WAL')
+  }
+
+  // 同时复制 SHM 文件（如果存在）
+  if (fs.existsSync(shm)) {
+    fs.copyFileSync(shm, targetPath + '-shm')
+    log('backup copied SHM')
+  }
+
+  // 恢复：关闭当前 DB，复制备份文件，重启 DB
+  const dest = getDbPath()
+  fs.copyFileSync(targetPath, dest)
+  log('restore copied:', targetPath, '->', dest)
+
+  // 复制 WAL 和 SHM
+  const bakWal = targetPath + '-wal'
+  const bakShm = targetPath + '-shm'
+  if (fs.existsSync(bakWal)) fs.copyFileSync(bakWal, getWalPath())
+  if (fs.existsSync(bakShm)) fs.copyFileSync(bakShm, getShmPath())
+
+  // 重新初始化
+  return initDb()
 }
 
 // ─── 用户操作 ─────────────────────────────────────────────────────────
@@ -261,7 +332,6 @@ export function queryAllStats(userId, projectId) {
   return { income, expense, balance: income - expense }
 }
 
-// 按项目统计
 export function queryProjectStats(userId) {
   const d = _db()
   const rows = d.prepare(`

@@ -248,4 +248,45 @@ ipcMain.handle('records:export', async (_, args) => {
   }
 })
 
+// ─── 备份与恢复 ──────────────────────────────────────────────────────
+ipcMain.handle('db:backup', async (_, args) => {
+  const user = getUserFromHeader(args?.headers || {})
+  if (!user) return { ok: false, error: '未授权' }
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: '备份数据库',
+    defaultPath: `记账本备份_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.db`,
+    filters: [{ name: '数据库文件', extensions: ['db'] }],
+  })
+  if (canceled || !filePath) return { ok: true, cancelled: true }
+  try {
+    const db = await getDb()
+    db.backupDatabase(filePath)
+    console.log('[db:backup] ok:', filePath)
+    return { ok: true, path: filePath }
+  } catch (e) {
+    console.error('[db:backup] error:', e)
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('db:restore', async (_, args) => {
+  const user = getUserFromHeader(args?.headers || {})
+  if (!user) return { ok: false, error: '未授权' }
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: '恢复数据库',
+    filters: [{ name: '数据库文件', extensions: ['db'] }],
+    properties: ['openFile'],
+  })
+  if (canceled || !filePaths?.length) return { ok: true, cancelled: true }
+  try {
+    const db = await getDb()
+    await db.backupDatabase(filePaths[0])
+    console.log('[db:restore] ok:', filePaths[0])
+    return { ok: true, path: filePaths[0] }
+  } catch (e) {
+    console.error('[db:restore] error:', e)
+    return { ok: false, error: e.message }
+  }
+})
+
 console.log('[Handlers] All IPC handlers registered')

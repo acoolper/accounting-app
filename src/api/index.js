@@ -158,3 +158,20 @@ export async function api(path, options = {}) {
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+// ─── 数据库备份 / 恢复 ───────────────────────────────────────────────
+export async function backupDb() {
+  const token = localStorage.getItem('token') || ''
+  const result = await window.electronAPI.invoke('db:backup', {
+    headers: { 'Authorization': `Bearer ${token}` },
+  })
+  return result
+}
+
+export async function restoreDb() {
+  const token = localStorage.getItem('token') || ''
+  const result = await window.electronAPI.invoke('db:restore', {
+    headers: { 'Authorization': `Bearer ${token}` },
+  })
+  return result
+}

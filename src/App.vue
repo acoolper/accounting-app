@@ -39,8 +39,14 @@
           </div>
         </div>
         <div class="sidebar-actions">
+          <el-button size="small" @click="handleBackup">
+            <el-icon><Upload /></el-icon>备份
+          </el-button>
+          <el-button size="small" @click="handleRestore">
+            <el-icon><Download /></el-icon>恢复
+          </el-button>
           <el-button size="small" @click="showChangePwd = true">
-            <el-icon><Key /></el-icon>修改密码
+            <el-icon><Key /></el-icon>改密
           </el-button>
           <el-button size="small" type="danger" @click="handleLogout">
             <el-icon><SwitchButton /></el-icon>退出
@@ -81,8 +87,8 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { api } from '@/api'
-import { ElMessage } from 'element-plus'
+import { api, backupDb, restoreDb } from '@/api'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -127,6 +133,44 @@ async function handleChangePwd() {
     pwdError.value = e.message || '网络错误'
   } finally {
     pwdLoading.value = false
+  }
+}
+
+async function handleBackup() {
+  try {
+    const result = await backupDb()
+    if (result.cancelled) return
+    if (!result.ok) {
+      ElMessage.error(result.error || '备份失败')
+      return
+    }
+    ElMessage.success(`备份成功：${result.path}`)
+  } catch (e) {
+    ElMessage.error('备份失败：' + e.message)
+  }
+}
+
+async function handleRestore() {
+  try {
+    await ElMessageBox.confirm(
+      '恢复数据将覆盖当前所有数据，操作不可逆！\n建议先点击左侧「备份」按钮导出当前数据。\n\n确认继续？',
+      '恢复数据库',
+      { type: 'warning', confirmButtonText: '确认恢复', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    const result = await restoreDb()
+    if (result.cancelled) return
+    if (!result.ok) {
+      ElMessage.error(result.error || '恢复失败')
+      return
+    }
+    ElMessage.success('数据恢复成功，请重新登录')
+    handleLogout()
+  } catch (e) {
+    ElMessage.error('恢复失败：' + e.message)
   }
 }
 </script>
@@ -191,10 +235,11 @@ async function handleChangePwd() {
 }
 .sidebar-actions {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 .sidebar-actions .el-button {
-  flex: 1;
+  flex: 1 1 calc(50% - 3px);
 }
 .main-content {
   padding: 10px;

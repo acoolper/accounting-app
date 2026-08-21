@@ -1,0 +1,203 @@
+═══════════════════════════════════════════════════════════════
+         GitHub Actions 云端构建 — 代码上传完整指南
+═══════════════════════════════════════════════════════════════
+
+预计耗时：5-10 分钟
+
+═══════════════════════════════════════════════════════════════
+步骤 1：注册 GitHub 账号（如已有请跳过）
+═══════════════════════════════════════════════════════════════
+
+1. 访问 https://github.com/
+2. 点击右上角「Sign up」
+3. 填写邮箱、密码、用户名
+4. 完成邮箱验证
+5. 选择免费方案
+
+═══════════════════════════════════════════════════════════════
+步骤 2：在 GitHub 创建仓库
+═══════════════════════════════════════════════════════════════
+
+1. 登录 GitHub 后，点击右上角「+」→「New repository」
+
+2. 填写仓库信息：
+   Repository name: accounting-app
+   Description: 基于 Electron + Vue 3 + SQLite 的桌面记账工具
+   Visibility: ✅ Public（公开仓库，免费构建无限制）
+              或 Private（私有仓库，每月 2000 分钟免费）
+
+3. ⚠️ 重要：创建时**不要勾选**以下选项（因为本地已有代码）：
+   ❌ Add a README file
+   ❌ Add .gitignore
+   ❌ Choose a license
+
+4. 点击「Create repository」
+
+═══════════════════════════════════════════════════════════════
+步骤 3：创建 GitHub 个人访问令牌（Personal Access Token）
+═══════════════════════════════════════════════════════════════
+
+这是推送代码的凭证（GitHub 2021 年后不再支持密码验证）
+
+1. 点击右上角头像 → Settings
+
+2. 左侧菜单最下方找到：
+   Developer settings → Personal access tokens → Tokens (classic)
+
+   直接访问链接：
+   https://github.com/settings/tokens/new
+
+3. 点击「Generate new token」→「Generate new token (classic)」
+
+4. 填写令牌信息：
+   Note: accounting-app-upload
+   Expiration: No expiration（永不过期）
+              或 90 days（90天后过期，推荐）
+
+   Select scopes（勾选权限）：
+   ✅ repo（完整仓库权限，包括读写代码）
+   ✅ workflow（GitHub Actions 权限）
+
+5. 点击页面底部绿色按钮「Generate token」
+
+6. ⚠️ 关键：复制生成的令牌（以 ghp_ 开头的字符串）
+   示例：ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+   保存到安全的地方！离开页面后无法再次查看！
+
+═══════════════════════════════════════════════════════════════
+步骤 4：在终端执行 Git 命令（本地已准备好）
+═══════════════════════════════════════════════════════════════
+
+打开终端（Terminal），依次执行以下命令：
+
+═══ 第一步：进入项目目录 ═══
+cd ~/Desktop/work_zone/accounting-app
+
+═══ 第二步：创建首次提交 ═══
+git commit -m "Initial commit: 记账本桌面应用"
+
+═══ 第三步：设置远程仓库（替换 <你的用户名>）═══
+git remote add origin https://github.com/<你的用户名>/accounting-app.git
+
+示例：
+git remote add origin https://github.com/zhangsan/accounting-app.git
+
+═══ 第四步：设置主分支名称 ═══
+git branch -M main
+
+═══ 第五步：推送代码到 GitHub ═══
+git push -u origin main
+
+═══ 第六步：输入凭证 ═══
+系统会弹出两次输入提示：
+
+Username for 'https://github.com': 输入你的 GitHub 用户名
+Password for 'https://github.com': 粘贴刚才的 Personal Access Token
+                                   （以 ghp_ 开头的那个）
+
+⚠️ 注意：输入密码时不会显示任何字符，粘贴后直接按回车即可
+
+═══════════════════════════════════════════════════════════════
+步骤 5：验证代码已上传成功
+═══════════════════════════════════════════════════════════════
+
+1. 刷新你的 GitHub 仓库页面：
+   https://github.com/<你的用户名>/accounting-app
+
+2. 应该看到以下文件和目录：
+   .github/workflows/build.yml  ← 自动构建配置
+   src/                         ← 源代码目录
+   build/icon-1024.png          ← 图标文件
+   package.json                 ← 项目配置
+   README.md                    ← 说明文档
+
+═══════════════════════════════════════════════════════════════
+步骤 6：触发 GitHub Actions 自动构建
+═══════════════════════════════════════════════════════════════
+
+代码上传后会自动触发构建，也可以手动触发：
+
+方式一：自动触发（已配置）
+- 每次推送到 main 分支都会自动构建
+- 刚才的 push 已经触发第一次构建
+
+方式二：手动触发
+1. 进入 GitHub 仓库页面
+2. 点击顶部「Actions」标签
+3. 左侧选择「Build Desktop App」
+4. 点击右侧「Run workflow」→ 绿色按钮「Run workflow」
+
+═══════════════════════════════════════════════════════════════
+步骤 7：查看构建进度和下载产物
+═══════════════════════════════════════════════════════════════
+
+1. 进入「Actions」标签页
+2. 点击正在运行的 workflow（黄色圆点 ●）
+3. 查看实时构建日志：
+   - macOS 构建：约 8-12 分钟
+   - Windows 构建：约 6-10 分钟
+   - Linux 构建：约 5-8 分钟
+
+4. 构建完成后（绿色勾 ✓）：
+   - 滚动到页面底部「Artifacts」区域
+   - 下载对应平台的安装包：
+     • mac-universal → 记账本-1.0.0-universal.dmg
+     • win-x64 → 记账本 Setup 1.0.0.exe
+     • linux-x64 → 记账本-1.0.0.AppImage
+
+═══════════════════════════════════════════════════════════════
+常见问题排查
+═══════════════════════════════════════════════════════════════
+
+Q1：git push 报错「fatal: 'origin' already exists」
+A：执行 git remote remove origin 后重试步骤 3
+
+Q2：git push 报错「Authentication failed」
+A：检查用户名和 Token 是否正确，Token 必须以 ghp_ 开头
+
+Q3：git push 报错「refusing to allow an OAuth App to create»
+A：Token 权限不足，重新创建令牌并勾选 repo + workflow
+
+Q4：Actions 构建失败「Cannot find module 'better-sqlite3'」
+A：这是正常的，第一次构建会重建原生模块，等待重试即可
+
+Q5：构建成功但下载速度很慢
+A：GitHub 在海外，建议用代理或离线下载工具
+
+Q6：想修改版本号怎么办？
+A：修改 package.json 中的 version 字段，push 后自动触发新构建
+
+Q7：如何更新代码？
+A：修改后执行：
+   git add .
+   git commit -m "更新说明"
+   git push
+
+═══════════════════════════════════════════════════════════════
+快速命令速查表
+═══════════════════════════════════════════════════════════════
+
+# 查看当前状态
+git status
+
+# 查看远程仓库
+git remote -v
+
+# 查看提交历史
+git log --oneline
+
+# 更新代码并推送
+git add .
+git commit -m "更新说明"
+git push
+
+# 强制推送（谨慎使用）
+git push -f origin main
+
+# 克隆仓库到其他电脑
+git clone https://github.com/<用户名>/accounting-app.git
+
+═══════════════════════════════════════════════════════════════
+准备好了吗？现在开始执行步骤 2（创建 GitHub 仓库）
+═══════════════════════════════════════════════════════════════
