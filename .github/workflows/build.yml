@@ -3,9 +3,15 @@ name: Build Desktop App
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:  # 手动触发
+
+env:
+  ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
 jobs:
   build:
@@ -40,6 +46,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup Linux deps
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+
       - name: Install dependencies
         run: |
           npm config set registry https://registry.npmmirror.com
@@ -52,30 +64,17 @@ jobs:
 
       - name: Build Electron app (macOS)
         if: matrix.platform == 'mac'
-        run: |
-          npx electron-builder --mac --universal --publish never
-        env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder --mac --universal --publish never
         timeout-minutes: 20
 
       - name: Build Electron app (Windows)
         if: matrix.platform == 'win'
-        run: |
-          npx electron-builder --win --x64 --publish never
-        env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder --win --x64 --publish never
         timeout-minutes: 20
 
       - name: Build Electron app (Linux)
         if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libarchive-tools
-          npx electron-builder --linux --x64 --publish never
-        env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+        run: npx electron-builder --linux --x64 --publish never
         timeout-minutes: 20
 
       - name: Upload artifacts
@@ -87,5 +86,32 @@ jobs:
             release/*.exe
             release/*.AppImage
             release/*.zip
-          retention-days: 30
+          retention-days: 5
           if-no-files-found: warn
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/mac-universal/*.dmg
+            artifacts/win-x64/*.exe
+            artifacts/linux-x64/*.AppImage
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
